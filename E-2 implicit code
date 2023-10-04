@@ -1,0 +1,103 @@
+E-2 implicit code
+clc
+close all
+clear all
+% given initial parameter
+Ta1 = 25+273; % air parameter
+h1 = 50;
+Ta2 = 25+273; % water parameter
+h2 = 50;
+Ti = 100+273; % initial bar temperarture
+k = 60.5; % bar heat conductivity
+rho = 7854; % [kg/m^3]
+c = 434; % [J/kg/K]
+qpp = 100; % heat flux from left hand side [w/m^2]
+Ac = 0.0002; % cross section [m^2]
+L = 0.2; % Length [m]
+x1 = 0.05;
+x2 = 0.1;
+x3 = 0.15;
+ 
+row = 100;
+n = row+1;
+ 
+dx = L/row; %dx value = Ac value
+a = k/rho/c;
+Bi = h1*dx/k; % h1 = h2 water&air same condition
+dt = 0.1; %dt = F0*(dx^2)/a <= 0.11249
+Fo = dt*a/dx/dx;
+ 
+A = zeros(n,n);
+B = zeros(n,1);
+Tt = zeros(n,1);
+R = zeros(n,n); 
+count = 1;
+% initial condition   
+for ii=1:101
+    Tt(ii,1) = Ti;
+end
+% construct nodes
+for jj=1:1001
+    % left side node
+    A(1,1) = 1+2*Fo;
+    A(1,2) = (-2)*Fo;
+    B(1,1) = (-2)*Fo*qpp*dx/k;
+    % insulated region
+    for ii = 2:25
+        A(ii,ii-1) = -Fo;
+        A(ii,ii) = 1+2*Fo;
+        A(ii,ii+1) = -Fo;
+    end
+    for ii = 52:75
+        A(ii,ii-1) = -Fo;
+        A(ii,ii) = 1+2*Fo;
+        A(ii,ii+1) = -Fo;
+    end
+    %insulated & convection boundary
+    for ii=26:25:76
+        A(ii,ii-1) = -Fo;
+        A(ii,ii) = 1+2*Fo+Fo*Bi;
+        A(ii,ii+1) = -Fo;
+        B(ii,1) = -Bi*Fo*Ta1;
+    end
+    % conduction & convection region
+    for ii = 27:50
+        A(ii,ii-1) = -Fo;
+        A(ii,ii) = 1+2*Fo+2*Bi*Fo;
+        A(ii,ii+1) = -Fo;
+        B(ii,1) = (-2)*Bi*Fo*Ta1;
+    end
+    for ii = 77:100
+        A(ii,ii-1) = -Fo;
+        A(ii,ii) = 1+2*Fo+2*Bi*Fo;
+        A(ii,ii+1) = -Fo;
+        B(ii,1) = (-2)*Bi*Fo*Ta1;
+    end
+    % right side node
+    A(n,n-1) = (-2)*Fo;
+    A(n,n) = 1+2*Fo+2*Bi*Fo;
+    B(n,1) = (-2)*Fo*Bi*Ta2;
+    % record
+    Tt = inv(A)*(Tt-B);
+    if mod(jj,10)==1
+        for ii=1:n
+            R(ii,count) = Tt(ii,1);
+        end
+        count = count+1;
+    end
+end
+ 
+% plot
+surf(R)
+colorbar
+set(gca,'Ydir','reverse')
+set(gca,'Xdir','reverse')
+title('result')
+ylabel('Pos[m]')
+xlabel('Time[s]')
+zlabel('T[K]')
+set(gca,'XTick',0:50:200);
+set(gca,'XTickLabel',{'0','50','100','150','200'});
+set(gca,'YTick',0:25:100);
+set(gca,'YTickLabel',{'0','0.5','1','1.5','0.2'});
+
